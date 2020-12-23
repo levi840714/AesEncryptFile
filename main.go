@@ -18,26 +18,35 @@ func init() {
 
 func main() {
 	f, err := ioutil.ReadFile(*file)
-	fmt.Println(string(f))
+	fmt.Println(len(f))
+
 	if err != nil {
 		log.Fatalf("read file fail, error: %s", err)
 	}
 
-	var content string
+	var content []byte
 	switch *action {
 	case "encrypt":
-		content, err = AesCFBEncrypt(string(f))
+		buffer := f[:2]
+		encrypt, err := AesCFBEncrypt(buffer)
 		if err != nil {
 			log.Fatalf("encrypt error, error: %s", err)
 		}
+		content = append(encrypt, f[2:]...)
+
 	case "decrypt":
-		content, err = AesCFBDecrypt(string(f))
+		buffer := f[:18]
+		decrypt, err := AesCFBDecrypt(buffer)
 		if err != nil {
 			log.Fatalf("decrypt error, error: %s", err)
 		}
+		content = append(decrypt, f[18:]...)
+	default:
+		log.Fatal("unsupported action")
 	}
 
-	err = ioutil.WriteFile(*file, []byte(content), 644)
+	fmt.Println(len(content))
+	err = ioutil.WriteFile(*file, content, 644)
 	if err != nil {
 		log.Fatalf("write file error, error: %s", err)
 	}
