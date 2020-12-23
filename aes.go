@@ -4,7 +4,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"io"
 	"sync"
@@ -16,42 +15,39 @@ type AesKey struct {
 }
 
 var commonKey = &AesKey{
-	key: []byte(""),  // either 16, 24, or 32 bytes to select
+	key: []byte(""), // either 16, 24, or 32 bytes to select
 }
 
 // encrypt plain text
-func AesCFBEncrypt(plainText string) (string, error) {
+func AesCFBEncrypt(plainText []byte) ([]byte, error) {
 	block, err := aes.NewCipher(commonKey.key)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	cipherText := make([]byte, aes.BlockSize+len(plainText))
 	iv := cipherText[:aes.BlockSize]
 
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	cipher.NewCFBEncrypter(block, iv).XORKeyStream(cipherText[aes.BlockSize:], []byte(plainText))
+	cipher.NewCFBEncrypter(block, iv).XORKeyStream(cipherText[aes.BlockSize:], plainText)
 
-	return hex.EncodeToString(cipherText), nil
+	return cipherText, nil
 }
 
 // decrypt text
-func AesCFBDecrypt(decryptText string) (string, error) {
-	cipherText, err := hex.DecodeString(decryptText)
-	if err != nil {
-		return "", err
-	}
+func AesCFBDecrypt(decryptText []byte) ([]byte, error) {
+	cipherText := decryptText
 
 	block, err := aes.NewCipher(commonKey.key)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if len(cipherText) < aes.BlockSize {
-		return "", errors.New("cipher text too short")
+		return nil, errors.New("cipher text too short")
 	}
 
 	iv := cipherText[:aes.BlockSize]
@@ -59,5 +55,5 @@ func AesCFBDecrypt(decryptText string) (string, error) {
 
 	cipher.NewCFBDecrypter(block, iv).XORKeyStream(cipherText, cipherText)
 
-	return string(cipherText), nil
+	return cipherText, nil
 }
